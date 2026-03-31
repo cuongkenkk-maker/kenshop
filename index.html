@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Ken Shop - Roblox</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+<body>
+    <h1>Chào mừng đến với Ken Shop</h1>
+    <div id="user-info">
+        <p>ID của bạn: <span id="my-id">Đang tải...</span></p>
+        <p>Số dư: <span id="my-balance">0</span> VNĐ</p>
+    </div>
+
+    <section id="recharge">
+        <h3>Nạp tiền Bank (Auto)</h3>
+        <p>Nội dung CK: <strong id="syntax">napbankkenshop ...</strong></p>
+        </section>
+
+    <hr>
+    <h3>Danh sách vật phẩm</h3>
+    <div id="item-list" style="display: flex; gap: 20px;">
+        </div>
+
+    <script>
+        // PHẦN 1: Cấu hình Firebase (Lấy từ Firebase Console của bạn)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAg43SSX_aLhhiXhO7hf1eHAZ-1OaeSd8M",
+            authDomain: "kenshop-88903.firebaseapp.com",
+            projectId: "kenshop-88903",
+            storageBucket: "kenshop-88903.firebasestorage.app",
+            messagingSenderId: "149286522818",
+            appId: "1:149286522818:web:85fa1721635fdb85bb105b"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // PHẦN 2: Giả lập ID người dùng (Trong thực tế bạn dùng Firebase Auth)
+        let userId = localStorage.getItem("userId") || "KEN" + Math.floor(Math.random() * 10000);
+        localStorage.setItem("userId", userId);
+        document.getElementById("my-id").innerText = userId;
+        document.getElementById("syntax").innerText = "napbankkenshop " + userId;
+
+        // PHẦN 3: Lấy danh sách đồ từ Database
+        db.collection("items").onSnapshot((snapshot) => {
+            const list = document.getElementById("item-list");
+            list.innerHTML = "";
+            snapshot.forEach(doc => {
+                const item = doc.data();
+                if (item.status !== "sold") { // Nếu chưa bán thì hiện
+                    list.innerHTML += `
+                        <div style="border: 1px solid #ccc; padding: 10px;">
+                            <h4>${item.name}</h4>
+                            <p>Giá: ${item.price}đ</p>
+                            <p>Trạng thái: ${item.status === 'pending' ? '<b>Đang chờ xác nhận</b>' : 'Còn hàng'}</p>
+                            ${item.status === 'available' ? `<button onclick="buy('${doc.id}', ${item.price})">Mua ngay</button>` : ''}
+                        </div>
+                    `;
+                }
+            });
+        });
+
+        async function buy(itemId, price) {
+            const contact = prompt("Nhập Discord hoặc Link FB của bạn:");
+            if(!contact) return;
+
+            // Gửi Webhook về Discord cho Admin
+            fetch("LINK_WEBHOOK_CUA_BAN", {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    content: `🛒 **ĐƠN MỚI!**\nID khách: ${userId}\nMón: ${itemId}\nLiên hệ: ${contact}`
+                })
+            });
+
+            // Cập nhật trạng thái trên Database
+            await db.collection("items").doc(itemId).update({
+                status: "pending",
+                buyer_contact: contact
+            });
+            alert("Đã gửi đơn hàng! Chờ Admin xác nhận.");
+        }
+    </script>
+</body>
+</html>
