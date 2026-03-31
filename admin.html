@@ -1,0 +1,24 @@
+<script>
+    // Kiểm tra đăng nhập cứng theo yêu cầu của bạn
+    const user = prompt("User Admin:");
+    const pass = prompt("Pass Admin:");
+    if(user !== "kenneku" || pass !== "taolaken@") {
+        alert("Cút!");
+        window.location.href = "index.html";
+    }
+
+    // Hàm Give tiền (Cộng vào Database)
+    async function giveMoney(targetId, amount) {
+        // Tìm user có ID đó và cộng tiền
+        // Code cập nhật Firestore field 'balance'
+    }
+
+    // Hàm Đăng đồ
+    async function addItem(name, price) {
+        await db.collection("items").add({
+            name: name,
+            price: price,
+            status: "available"
+        });
+    }
+</script>
