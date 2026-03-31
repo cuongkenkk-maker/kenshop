@@ -1,24 +1,99 @@
-<script>
-    // Kiểm tra đăng nhập cứng theo yêu cầu của bạn
-    const user = prompt("User Admin:");
-    const pass = prompt("Pass Admin:");
-    if(user !== "kenneku" || pass !== "taolaken@") {
-        alert("Cút!");
-        window.location.href = "index.html";
-    }
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>ADMIN PANEL | KEN SHOP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+</head>
+<body class="bg-slate-900 text-white p-8">
+    <h1 class="text-3xl font-black text-blue-500 mb-8 border-b border-slate-700 pb-4">QUẢN TRỊ VIÊN KEN SHOP</h1>
 
-    // Hàm Give tiền (Cộng vào Database)
-    async function giveMoney(targetId, amount) {
-        // Tìm user có ID đó và cộng tiền
-        // Code cập nhật Firestore field 'balance'
-    }
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+            <h2 class="text-xl font-bold mb-4 text-blue-400 uppercase">Đăng đồ mới</h2>
+            <input id="in-name" placeholder="Tên sản phẩm" class="w-full bg-slate-900 p-3 mb-4 rounded-xl border border-slate-700">
+            <input id="in-price" type="number" placeholder="Giá tiền (VNĐ)" class="w-full bg-slate-900 p-3 mb-4 rounded-xl border border-slate-700">
+            <input id="in-img" placeholder="Link ảnh (Imgur/Discord link)" class="w-full bg-slate-900 p-3 mb-4 rounded-xl border border-slate-700">
+            <button onclick="postItem()" class="w-full bg-blue-600 py-3 rounded-xl font-bold hover:bg-blue-700 transition">ĐĂNG LÊN SHOP</button>
+        </div>
 
-    // Hàm Đăng đồ
-    async function addItem(name, price) {
-        await db.collection("items").add({
-            name: name,
-            price: price,
-            status: "available"
+        <div class="bg-slate-800 p-6 rounded-2xl shadow-xl border border-slate-700">
+            <h2 class="text-xl font-bold mb-4 text-green-400 uppercase">Give tiền cho khách</h2>
+            <input id="target-id" placeholder="ID Khách (VD: KEN1234)" class="w-full bg-slate-900 p-3 mb-4 rounded-xl border border-slate-700">
+            <input id="amount" type="number" placeholder="Số tiền cộng" class="w-full bg-slate-900 p-3 mb-4 rounded-xl border border-slate-700">
+            <button onclick="giveMoney()" class="w-full bg-green-600 py-3 rounded-xl font-bold hover:bg-green-700 transition">CỘNG TIỀN NGAY</button>
+        </div>
+    </div>
+
+    <div class="mt-12">
+        <h2 class="text-xl font-bold mb-4 text-orange-500 uppercase italic">Đơn hàng đang chờ xác nhận</h2>
+        <div id="pending-list" class="space-y-4"></div>
+    </div>
+
+    <script>
+        // Check Login
+        const u = prompt("User Admin:");
+        const p = prompt("Pass Admin:");
+        if(u !== "kenneku" || p !== "taolaken@") { alert("Sai pass!"); window.location.href="index.html"; }
+
+        // Firebase Config (Giống index.html)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAg43SSX_aLhhiXhO7hf1eHAZ-1OaeSd8M",
+            projectId: "kenshop-88903",
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        async function postItem() {
+            const name = document.getElementById("in-name").value;
+            const price = Number(document.getElementById("in-price").value);
+            const img = document.getElementById("in-img").value;
+            if(!name || !price || !img) return alert("Điền đủ info!");
+
+            await db.collection("items").add({
+                name: name,
+                price: price,
+                image: img,
+                status: "available",
+                createdAt: new Date()
+            });
+            alert("Đã đăng!");
+        }
+
+        async function giveMoney() {
+            const id = document.getElementById("target-id").value;
+            const money = Number(document.getElementById("amount").value);
+            if(!id || !money) return alert("Nhập đủ ID và tiền!");
+
+            const ref = db.collection("users").doc(id);
+            await ref.set({ balance: firebase.firestore.FieldValue.increment(money) }, { merge: true });
+            alert("Đã cộng tiền thành công cho " + id);
+        }
+
+        // Hiện danh sách đơn chờ
+        db.collection("items").where("status", "==", "pending").onSnapshot(snap => {
+            const list = document.getElementById("pending-list");
+            list.innerHTML = "";
+            snap.forEach(doc => {
+                const it = doc.data();
+                list.innerHTML += `
+                    <div class="bg-slate-800 p-4 rounded-xl flex justify-between items-center border-l-4 border-orange-500">
+                        <div>
+                            <p class="font-bold">${it.name}</p>
+                            <p class="text-xs text-slate-400">Người mua: <b>${it.buyer_contact}</b></p>
+                        </div>
+                        <button onclick="confirmSold('${doc.id}')" class="bg-orange-500 px-4 py-2 rounded-lg text-xs font-bold">XÁC NHẬN ĐÃ GIAO ĐỒ</button>
+                    </div>
+                `;
+            });
         });
-    }
-</script>
+
+        async function confirmSold(id) {
+            await db.collection("items").doc(id).update({ status: "sold" });
+            alert("Đã hoàn tất đơn hàng!");
+        }
+    </script>
+</body>
+</html>
